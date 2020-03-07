@@ -77,7 +77,16 @@ trap(struct trapframe *tf)
             cpuid(), tf->cs, tf->eip);
     lapiceoi();
     break;
-
+  case T_PGFLT: ;
+    int pagefault = STACKTOP - (myproc()->numPages * PGSIZE);
+    if (rcr2() < pagefault && rcr2() > PGROUNDDOWN(pagefault - 1)) {
+      if (allocuvm(myproc()->pgdir, PGROUNDDOWN(pagefault), pagefault) == 0) {
+        cprintf("Failed to allocate page\n");
+        break;
+      }
+      myproc()->numPages++;
+    }
+    break;
   //PAGEBREAK: 13
   default:
     if(myproc() == 0 || (tf->cs&3) == 0){
